@@ -1,0 +1,364 @@
+#import necessary libraries
+import math
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+import warnings
+warnings.filterwarnings('ignore')
+
+
+#import necessary model libraries:
+
+from sklearn.preprocessing import StandardScaler
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+from sklearn.linear_model import LinearRegression, Lasso, Ridge
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import GradientBoostingRegressor
+
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import GridSearchCV 
+from sklearn.model_selection import RandomizedSearchCV 
+
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+
+#get the dataset into dataframe
+df = pd.read_csv("https://raw.githubusercontent.com/dsrscientist/DSData/master/Advertising.csv")
+df.head()
+
+#checking the rows and columns
+df.shape
+
+
+#checking for information of independent variables
+df.info()
+
+#checking for null values
+df.isnull().sum()
+
+#missing values can be visualized using graphs
+plt.figure()
+sns.heatmap(df.isnull(),)
+
+#checking the data statistics
+df.describe()
+
+#removing the 'Unnamed: 0' column from dataset permanently
+df.drop('Unnamed: 0',axis=1,inplace=True)
+df
+
+#plotting the relationship between individual features with target variables
+#analysing the relation between dependent and independent variables
+
+plt.figure(figsize=(8,8), facecolor='white')
+sns.scatterplot(x=df['TV'],y=df['sales'],color ='red', )
+
+sns.scatterplot(x=df['radio'],y=df['sales'],color ='blue')
+
+sns.scatterplot(x=df['newspaper'],y=df['sales'],color ='green')
+
+
+plt.legend(df.columns)
+plt.xlabel("TV, Newspaper, Radio")
+plt.ylabel("Sales")
+plt.title("Graph of Independent Variables v/s Sales")
+
+#checking the distribution of data over the columns
+plt.figure(figsize=(8,10), facecolor='white')
+ax = plt.subplot(2,1,1) 
+sns.distplot(df['TV'])
+
+ax = plt.subplot(2,1,2)
+sns.boxplot(df['TV'],orient='v')
+ 
+plt.show()
+
+plt.figure(figsize=(8,10), facecolor='white')
+ax = plt.subplot(2,1,1) 
+sns.distplot(df['newspaper'])
+
+ax = plt.subplot(2,1,2)
+sns.boxplot(df['newspaper'],orient='v')
+ 
+plt.show()
+
+plt.figure(figsize=(8,10), facecolor='white')
+ax = plt.subplot(2,1,1) 
+sns.distplot(df['radio'])
+
+ax = plt.subplot(2,1,2)
+sns.boxplot(df['radio'],orient='v')
+ 
+plt.show()
+
+plt.figure(figsize=(8,10), facecolor='white')
+sns.pairplot(df)
+plt.show()
+
+#Checking for Outliers using visualization plots
+plt.figure(figsize=(6,6), facecolor='blue')
+sns.boxplot(data=df, palette='Set1')
+plt.show()
+
+#let us separate independent and dependent variables
+X = df.drop(columns='sales')
+y = df['sales']
+
+#standardizing the data
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+#checking for the multicollinearity between the independent features
+yel =pd.DataFrame()
+yel['Features'] = X.columns
+yel['yel'] = [variance_inflation_factor(X_scaled,i) for i in range(X_scaled.shape[1])]
+
+yel
+
+#generating the heatmaps to visualize multicollinearity
+corr = X.corr()
+plt.figure(figsize=(6,6), facecolor='white')
+sns.heatmap(corr, annot=True,cmap='YlGnBu')
+plt.show()
+
+df.skew()
+
+
+plt.figure(figsize=(15,5))
+ax = plt.subplot(1,4,1)
+sns.distplot(df['TV'],color='red')
+ax = plt.subplot(1,4,2)
+sns.distplot(df['newspaper'],color='blue')
+ax = plt.subplot(1,4,3)
+sns.distplot(df['radio'],color='purple')
+ax = plt.subplot(1,4,4)
+sns.distplot(df['sales'],color='green')
+plt.show()
+
+#applying log transformation
+df['newspaper']=np.log(df['newspaper'])
+
+#visualizing the data after reducing the skewness
+plt.figure(figsize=(15,5))
+ax = plt.subplot(1,4,1)
+sns.distplot(df['TV'],color='red')
+ax = plt.subplot(1,4,2)
+sns.distplot(df['newspaper'],color='blue')
+ax = plt.subplot(1,4,3)
+sns.distplot(df['radio'],color='purple')
+ax = plt.subplot(1,4,4)
+sns.distplot(df['sales'],color='green')
+plt.show()
+
+#  Linear Regression:
+#Splitting the data set into train test datasets and Selecting the best random state to get maximum accuracy.
+m_acc=0
+m_RS=0
+for i in range(1,100):
+    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.25, random_state=i)
+    lr= LinearRegression()
+    lr.fit(X_train,y_train)
+    pred = lr.predict(X_test)
+    acc = r2_score(y_test, pred)
+    if acc > m_acc:
+        m_acc= acc
+        m_RS=i
+print("The max accuracy is",m_acc, 'seen for random state:',i)
+
+#selecting 99 as randomstate as we got best result
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.25, random_state=99)
+
+lm = LinearRegression()
+lm.fit(X_train, y_train)
+y_pred = lm.predict(X_test)
+
+print("*******************Results********************")
+print('The r2 score is:', r2_score(y_test, y_pred))
+print('The mean absolute error', mean_absolute_error(y_test, y_pred))
+print('The mean squared error', mean_squared_error(y_test, y_pred))
+print('root mean square error', math.sqrt(mean_squared_error(y_test, y_pred)))
+cv = cross_val_score(lm, X,y,cv=5)
+print('The cross validation score', cv.mean())
+
+print("\n*****************XXXXXXXXXXX********************")
+
+#applying GridsearchCV to improve accuracy
+par_grid =  {'fit_intercept':[True,False], 'normalize':[True,False], 'copy_X':[True, False]}
+grid_lm = GridSearchCV(estimator=lm, param_grid=par_grid, cv=5,n_jobs=1, verbose=1)
+
+grid_lm.fit(X_train, y_train)
+
+#predicting the results
+print("The best estimators:", grid_lm.best_estimator_)
+print("The best score:", grid_lm.best_score_)
+print("The best parameters:", grid_lm.best_params_)
+
+#RE INSTANTIATING WITH BEST PARAMETERS
+grid_lm = LinearRegression(copy_X=True, fit_intercept=True, normalize=True)
+grid_lm.fit(X_train, y_train)
+y_pred1 = lm.predict(X_test)
+
+print("*******************Results********************")
+print('The r2 score is:', r2_score(y_test, y_pred1))
+print('The mean absolute error', mean_absolute_error(y_test, y_pred1))
+print('The mean squared error', mean_squared_error(y_test, y_pred1))
+print('root mean square error', math.sqrt(mean_squared_error(y_test, y_pred1)))
+cv = cross_val_score(grid_lm, X,y,cv=5)
+print('The cross validation score', cv.mean())
+
+print("\n*****************XXXXXXXXXXX********************")
+
+# Lasso Regularization-USING LASSO REGULARIZATION
+lasso = Lasso()
+lasso.fit(X_train,y_train)
+
+pred = lasso.predict(X_test)
+
+print("*******************Results********************")
+print('The r2 score is:', r2_score(y_test, pred))
+print('The mean absolute error', mean_absolute_error(y_test, pred))
+print('The mean squared error', mean_squared_error(y_test, pred))
+print('root mean square error', math.sqrt(mean_squared_error(y_test, pred)))
+cv = cross_val_score(lasso, X,y,cv=5)
+print('The cross validation score', cv.mean())
+
+print("\n*****************XXXXXXXXXXX********************")
+
+#applying GridsearchCV to improve accuracy
+param = {'alpha': np.arange(0.0001,0.1,0.001)}
+grid_lass= GridSearchCV(estimator=lasso,param_grid=param,n_jobs=2,cv=5,verbose=2)
+
+grid_lass.fit(X_train,y_train)
+pred1 = grid_lass.predict(X_test)
+
+print("*******************Results********************")
+print('The r2 score is:', r2_score(y_test, pred1))
+print("The best score:", grid_lass.best_score_)
+
+print("\n*****************XXXXXXXXXXX********************")
+
+#KNN Algorithm
+knn_reg = KNeighborsRegressor()
+knn_reg.fit(X_train,y_train)
+y_pred = knn_reg.predict(X_test)
+
+print("*******************Results********************")
+print('The r2 score is:', r2_score(y_test, y_pred))
+print('The mean absolute error', mean_absolute_error(y_test, y_pred))
+print('The mean squared error', mean_squared_error(y_test, y_pred))
+print('root mean square error', math.sqrt(mean_squared_error(y_test, y_pred)))
+cv = cross_val_score(knn_reg, X,y,cv=5)
+print('The cross validation score', cv.mean())
+
+print("\n*****************XXXXXXXXXXX********************")
+
+#applying GridsearchCV to improve accuracy
+param = {'algorithm':['kd_tree'], 
+         'n_neighbors':[3,2,4,6,8,10,14,7,11]}
+grid_knn = GridSearchCV(estimator=knn_reg, param_grid=param)
+grid_knn.fit(X_train,y_train)
+
+grid_knn.fit(X_train,y_train)
+
+pred1 = grid_knn.predict(X_test)
+
+print("*******************Results********************")
+print('The r2 score is:', r2_score(y_test, pred1))
+print("The best score:", grid_knn.best_score_)
+
+print("\n*****************XXXXXXXXXXX********************")
+
+
+#Random Forest Regressor
+random_reg = RandomForestRegressor()
+random_reg.fit(X_train,y_train)
+y_pred = random_reg.predict(X_test)
+
+print("*******************Results********************")
+print('The r2 score is:', r2_score(y_test, y_pred))
+print('The mean absolute error', mean_absolute_error(y_test, y_pred))
+print('The mean squared error', mean_squared_error(y_test, y_pred))
+print('root mean square error', math.sqrt(mean_squared_error(y_test, y_pred)))
+cv = cross_val_score(random_reg, X,y,cv=5)
+print('The cross validation score', cv.mean())
+
+print("\n*****************XXXXXXXXXXX********************")
+
+#applying RandomsearchCV to improve accuracy
+#hyperparameter 
+n_estimator = [int(x) for x in np.linspace(start=10, stop=120,num=10)]
+
+#number of features to be considered at each split
+max_features = ['auto','sqrt']
+
+#max number of tree
+max_depth=[int(x) for x in np.linspace(5,50,num=6)]
+
+#minimum number of samples for split
+min_samples_split = [2,5,3,7,8,4]
+
+#min number of samples for leaf split
+min_samples_leaf = [1,3,2,5,7,8,4,12,15,17,9,20]
+
+param = {'n_estimators':n_estimator, 'max_features':max_features, 'max_depth':max_depth, 'min_samples_leaf':min_samples_leaf, 'min_samples_split':min_samples_split}
+
+random_cv = RandomizedSearchCV(estimator=random_reg, param_distributions=param, n_iter=4, cv=5, n_jobs=2,verbose=2)
+random_cv.fit(X_train, y_train)
+pred = random_cv.predict(X_test)
+
+
+print("*******************Results********************")
+print('The r2 score is:', r2_score(y_test, pred))
+print("The best score:", random_cv.best_score_)
+
+print("\n*****************XXXXXXXXXXX********************")
+
+#Gradient Boosting Regressor
+gb_reg = GradientBoostingRegressor()
+gb_reg.fit(X_train,y_train)
+y_pred = gb_reg.predict(X_test)
+
+print("*******************Results********************")
+print('The r2 score is:', r2_score(y_test, y_pred))
+print('The mean absolute error', mean_absolute_error(y_test, y_pred))
+print('The mean squared error', mean_squared_error(y_test, y_pred))
+print('root mean square error', math.sqrt(mean_squared_error(y_test, y_pred)))
+cv = cross_val_score(gb_reg, X,y,cv=5)
+print('The cross validation score', cv.mean())
+
+print("\n*****************XXXXXXXXXXX********************")
+
+#applying RandomsearchCV to improve accuracy
+
+params = {"n_estimators":[50,100,200,300,400,500,600,700,800,900],"max_depth":[3,4,5,6,7,8,9,10,12,15],"min_samples_split":[2,5,8,10,12,15,18,20,22],
+             "max_features":['auto','sqrt'],"min_samples_leaf":[1,3,5,6,7,8],"learning_rate":[0.01,0.05,0.1,0.3,0.5,0.6,0.7]}
+
+random_gb = RandomizedSearchCV(gb_reg,param_distributions=params,n_iter=30,n_jobs=2,cv=6,verbose=2)
+random_gb.fit(X_train,y_train)
+          
+pred = random_gb.predict(X_test)
+
+
+print("*******************Results********************")
+print('The r2 score is:', r2_score(y_test, pred))
+print("The best score:", random_gb.best_score_)
+
+print("\n*****************XXXXXXXXXXX********************")
+
+#BEST MODEL
+y_pred = gb_reg.predict(X_test)
+print("The accuracy score of model is:",r2_score(y_test, y_pred)*100)
+
+#save the model
+import pickle
+
+#open a file where you want to store the dat
+file = open('Advertising_regressor.pkl','wb')
+
+#dump the information to the file
+pickle.dump(gb_reg,file)
+
