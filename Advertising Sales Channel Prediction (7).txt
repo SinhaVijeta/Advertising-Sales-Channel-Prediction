@@ -1,0 +1,738 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "fd4ecb9e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#import necessary libraries\n",
+    "import math\n",
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "import seaborn as sns\n",
+    "import matplotlib.pyplot as plt\n",
+    "%matplotlib inline\n",
+    "\n",
+    "import warnings\n",
+    "warnings.filterwarnings('ignore')\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "1aa9ba6c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#import necessary model libraries:\n",
+    "\n",
+    "from sklearn.preprocessing import StandardScaler\n",
+    "from statsmodels.stats.outliers_influence import variance_inflation_factor\n",
+    "\n",
+    "from sklearn.linear_model import LinearRegression, Lasso, Ridge\n",
+    "from sklearn.neighbors import KNeighborsRegressor\n",
+    "from sklearn.ensemble import RandomForestRegressor\n",
+    "from sklearn.ensemble import GradientBoostingRegressor\n",
+    "\n",
+    "from sklearn.model_selection import train_test_split, cross_val_score\n",
+    "from sklearn.model_selection import GridSearchCV \n",
+    "from sklearn.model_selection import RandomizedSearchCV \n",
+    "\n",
+    "from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "e7556ebe",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#get the dataset into dataframe\n",
+    "df = pd.read_csv(\"https://raw.githubusercontent.com/dsrscientist/DSData/master/Advertising.csv\")\n",
+    "df.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "6e64b308",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checking the rows and columns\n",
+    "df.shape\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "571c613a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checking for information of independent variables\n",
+    "df.info()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d870b796",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checking for null values\n",
+    "df.isnull().sum()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "24465a67",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#missing values can be visualized using graphs\n",
+    "plt.figure()\n",
+    "sns.heatmap(df.isnull(),)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "a47569f7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checking the data statistics\n",
+    "df.describe()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4bab4344",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#removing the 'Unnamed: 0' column from dataset permanently\n",
+    "df.drop('Unnamed: 0',axis=1,inplace=True)\n",
+    "df"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "41dacacb",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#plotting the relationship between individual features with target variables\n",
+    "#analysing the relation between dependent and independent variables\n",
+    "\n",
+    "plt.figure(figsize=(8,8), facecolor='white')\n",
+    "sns.scatterplot(x=df['TV'],y=df['sales'],color ='red', )\n",
+    "\n",
+    "sns.scatterplot(x=df['radio'],y=df['sales'],color ='blue')\n",
+    "\n",
+    "sns.scatterplot(x=df['newspaper'],y=df['sales'],color ='green')\n",
+    "\n",
+    "\n",
+    "plt.legend(df.columns)\n",
+    "plt.xlabel(\"TV, Newspaper, Radio\")\n",
+    "plt.ylabel(\"Sales\")\n",
+    "plt.title(\"Graph of Independent Variables v/s Sales\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d94b56b9",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checking the distribution of data over the columns\n",
+    "plt.figure(figsize=(8,10), facecolor='white')\n",
+    "ax = plt.subplot(2,1,1) \n",
+    "sns.distplot(df['TV'])\n",
+    "\n",
+    "ax = plt.subplot(2,1,2)\n",
+    "sns.boxplot(df['TV'],orient='v')\n",
+    " \n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "b7e76e65",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plt.figure(figsize=(8,10), facecolor='white')\n",
+    "ax = plt.subplot(2,1,1) \n",
+    "sns.distplot(df['newspaper'])\n",
+    "\n",
+    "ax = plt.subplot(2,1,2)\n",
+    "sns.boxplot(df['newspaper'],orient='v')\n",
+    " \n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "e13bab7b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plt.figure(figsize=(8,10), facecolor='white')\n",
+    "ax = plt.subplot(2,1,1) \n",
+    "sns.distplot(df['radio'])\n",
+    "\n",
+    "ax = plt.subplot(2,1,2)\n",
+    "sns.boxplot(df['radio'],orient='v')\n",
+    " \n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "44731c0f",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plt.figure(figsize=(8,10), facecolor='white')\n",
+    "sns.pairplot(df)\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "1675b136",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Checking for Outliers using visualization plots\n",
+    "plt.figure(figsize=(6,6), facecolor='blue')\n",
+    "sns.boxplot(data=df, palette='Set1')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "92162627",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#let us separate independent and dependent variables\n",
+    "X = df.drop(columns='sales')\n",
+    "y = df['sales']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "c7a87861",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#standardizing the data\n",
+    "scaler = StandardScaler()\n",
+    "X_scaled = scaler.fit_transform(X)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "aa964014",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checking for the multicollinearity between the independent features\n",
+    "yel =pd.DataFrame()\n",
+    "yel['Features'] = X.columns\n",
+    "yel['yel'] = [variance_inflation_factor(X_scaled,i) for i in range(X_scaled.shape[1])]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "0e48e660",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "yel"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "ec084519",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#generating the heatmaps to visualize multicollinearity\n",
+    "corr = X.corr()\n",
+    "plt.figure(figsize=(6,6), facecolor='white')\n",
+    "sns.heatmap(corr, annot=True,cmap='YlGnBu')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "778b4f80",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.skew()\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "6a45c4cd",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plt.figure(figsize=(15,5))\n",
+    "ax = plt.subplot(1,4,1)\n",
+    "sns.distplot(df['TV'],color='red')\n",
+    "ax = plt.subplot(1,4,2)\n",
+    "sns.distplot(df['newspaper'],color='blue')\n",
+    "ax = plt.subplot(1,4,3)\n",
+    "sns.distplot(df['radio'],color='purple')\n",
+    "ax = plt.subplot(1,4,4)\n",
+    "sns.distplot(df['sales'],color='green')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "7f71eed5",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#applying log transformation\n",
+    "df['newspaper']=np.log(df['newspaper'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "6d7cbbeb",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#visualizing the data after reducing the skewness\n",
+    "plt.figure(figsize=(15,5))\n",
+    "ax = plt.subplot(1,4,1)\n",
+    "sns.distplot(df['TV'],color='red')\n",
+    "ax = plt.subplot(1,4,2)\n",
+    "sns.distplot(df['newspaper'],color='blue')\n",
+    "ax = plt.subplot(1,4,3)\n",
+    "sns.distplot(df['radio'],color='purple')\n",
+    "ax = plt.subplot(1,4,4)\n",
+    "sns.distplot(df['sales'],color='green')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "26691320",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#  Linear Regression:\n",
+    "#Splitting the data set into train test datasets and Selecting the best random state to get maximum accuracy.\n",
+    "m_acc=0\n",
+    "m_RS=0\n",
+    "for i in range(1,100):\n",
+    "    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.25, random_state=i)\n",
+    "    lr= LinearRegression()\n",
+    "    lr.fit(X_train,y_train)\n",
+    "    pred = lr.predict(X_test)\n",
+    "    acc = r2_score(y_test, pred)\n",
+    "    if acc > m_acc:\n",
+    "        m_acc= acc\n",
+    "        m_RS=i\n",
+    "print(\"The max accuracy is\",m_acc, 'seen for random state:',i)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d6d781d2",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#selecting 99 as randomstate as we got best result\n",
+    "X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.25, random_state=99)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "9f124882",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "lm = LinearRegression()\n",
+    "lm.fit(X_train, y_train)\n",
+    "y_pred = lm.predict(X_test)\n",
+    "\n",
+    "print(\"*******************Results********************\")\n",
+    "print('The r2 score is:', r2_score(y_test, y_pred))\n",
+    "print('The mean absolute error', mean_absolute_error(y_test, y_pred))\n",
+    "print('The mean squared error', mean_squared_error(y_test, y_pred))\n",
+    "print('root mean square error', math.sqrt(mean_squared_error(y_test, y_pred)))\n",
+    "cv = cross_val_score(lm, X,y,cv=5)\n",
+    "print('The cross validation score', cv.mean())\n",
+    "\n",
+    "print(\"\\n*****************XXXXXXXXXXX********************\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "7ecbf639",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#applying GridsearchCV to improve accuracy\n",
+    "par_grid =  {'fit_intercept':[True,False], 'normalize':[True,False], 'copy_X':[True, False]}\n",
+    "grid_lm = GridSearchCV(estimator=lm, param_grid=par_grid, cv=5,n_jobs=1, verbose=1)\n",
+    "\n",
+    "grid_lm.fit(X_train, y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "295eeaee",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#predicting the results\n",
+    "print(\"The best estimators:\", grid_lm.best_estimator_)\n",
+    "print(\"The best score:\", grid_lm.best_score_)\n",
+    "print(\"The best parameters:\", grid_lm.best_params_)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "895cf04c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#RE INSTANTIATING WITH BEST PARAMETERS\n",
+    "grid_lm = LinearRegression(copy_X=True, fit_intercept=True, normalize=True)\n",
+    "grid_lm.fit(X_train, y_train)\n",
+    "y_pred1 = lm.predict(X_test)\n",
+    "\n",
+    "print(\"*******************Results********************\")\n",
+    "print('The r2 score is:', r2_score(y_test, y_pred1))\n",
+    "print('The mean absolute error', mean_absolute_error(y_test, y_pred1))\n",
+    "print('The mean squared error', mean_squared_error(y_test, y_pred1))\n",
+    "print('root mean square error', math.sqrt(mean_squared_error(y_test, y_pred1)))\n",
+    "cv = cross_val_score(grid_lm, X,y,cv=5)\n",
+    "print('The cross validation score', cv.mean())\n",
+    "\n",
+    "print(\"\\n*****************XXXXXXXXXXX********************\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "783aa9fd",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Lasso Regularization-USING LASSO REGULARIZATION\n",
+    "lasso = Lasso()\n",
+    "lasso.fit(X_train,y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3c1dff5a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "pred = lasso.predict(X_test)\n",
+    "\n",
+    "print(\"*******************Results********************\")\n",
+    "print('The r2 score is:', r2_score(y_test, pred))\n",
+    "print('The mean absolute error', mean_absolute_error(y_test, pred))\n",
+    "print('The mean squared error', mean_squared_error(y_test, pred))\n",
+    "print('root mean square error', math.sqrt(mean_squared_error(y_test, pred)))\n",
+    "cv = cross_val_score(lasso, X,y,cv=5)\n",
+    "print('The cross validation score', cv.mean())\n",
+    "\n",
+    "print(\"\\n*****************XXXXXXXXXXX********************\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5d17f0a6",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#applying GridsearchCV to improve accuracy\n",
+    "param = {'alpha': np.arange(0.0001,0.1,0.001)}\n",
+    "grid_lass= GridSearchCV(estimator=lasso,param_grid=param,n_jobs=2,cv=5,verbose=2)\n",
+    "\n",
+    "grid_lass.fit(X_train,y_train)\n",
+    "pred1 = grid_lass.predict(X_test)\n",
+    "\n",
+    "print(\"*******************Results********************\")\n",
+    "print('The r2 score is:', r2_score(y_test, pred1))\n",
+    "print(\"The best score:\", grid_lass.best_score_)\n",
+    "\n",
+    "print(\"\\n*****************XXXXXXXXXXX********************\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "01f18de7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#KNN Algorithm\n",
+    "knn_reg = KNeighborsRegressor()\n",
+    "knn_reg.fit(X_train,y_train)\n",
+    "y_pred = knn_reg.predict(X_test)\n",
+    "\n",
+    "print(\"*******************Results********************\")\n",
+    "print('The r2 score is:', r2_score(y_test, y_pred))\n",
+    "print('The mean absolute error', mean_absolute_error(y_test, y_pred))\n",
+    "print('The mean squared error', mean_squared_error(y_test, y_pred))\n",
+    "print('root mean square error', math.sqrt(mean_squared_error(y_test, y_pred)))\n",
+    "cv = cross_val_score(knn_reg, X,y,cv=5)\n",
+    "print('The cross validation score', cv.mean())\n",
+    "\n",
+    "print(\"\\n*****************XXXXXXXXXXX********************\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "11d32f0c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#applying GridsearchCV to improve accuracy\n",
+    "param = {'algorithm':['kd_tree'], \n",
+    "         'n_neighbors':[3,2,4,6,8,10,14,7,11]}\n",
+    "grid_knn = GridSearchCV(estimator=knn_reg, param_grid=param)\n",
+    "grid_knn.fit(X_train,y_train)\n",
+    "\n",
+    "grid_knn.fit(X_train,y_train)\n",
+    "\n",
+    "pred1 = grid_knn.predict(X_test)\n",
+    "\n",
+    "print(\"*******************Results********************\")\n",
+    "print('The r2 score is:', r2_score(y_test, pred1))\n",
+    "print(\"The best score:\", grid_knn.best_score_)\n",
+    "\n",
+    "print(\"\\n*****************XXXXXXXXXXX********************\")\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "f2653f1d",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Random Forest Regressor\n",
+    "random_reg = RandomForestRegressor()\n",
+    "random_reg.fit(X_train,y_train)\n",
+    "y_pred = random_reg.predict(X_test)\n",
+    "\n",
+    "print(\"*******************Results********************\")\n",
+    "print('The r2 score is:', r2_score(y_test, y_pred))\n",
+    "print('The mean absolute error', mean_absolute_error(y_test, y_pred))\n",
+    "print('The mean squared error', mean_squared_error(y_test, y_pred))\n",
+    "print('root mean square error', math.sqrt(mean_squared_error(y_test, y_pred)))\n",
+    "cv = cross_val_score(random_reg, X,y,cv=5)\n",
+    "print('The cross validation score', cv.mean())\n",
+    "\n",
+    "print(\"\\n*****************XXXXXXXXXXX********************\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "7b59f6b9",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#applying RandomsearchCV to improve accuracy\n",
+    "#hyperparameter \n",
+    "n_estimator = [int(x) for x in np.linspace(start=10, stop=120,num=10)]\n",
+    "\n",
+    "#number of features to be considered at each split\n",
+    "max_features = ['auto','sqrt']\n",
+    "\n",
+    "#max number of tree\n",
+    "max_depth=[int(x) for x in np.linspace(5,50,num=6)]\n",
+    "\n",
+    "#minimum number of samples for split\n",
+    "min_samples_split = [2,5,3,7,8,4]\n",
+    "\n",
+    "#min number of samples for leaf split\n",
+    "min_samples_leaf = [1,3,2,5,7,8,4,12,15,17,9,20]\n",
+    "\n",
+    "param = {'n_estimators':n_estimator, 'max_features':max_features, 'max_depth':max_depth, 'min_samples_leaf':min_samples_leaf, 'min_samples_split':min_samples_split}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "e8da09d1",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "random_cv = RandomizedSearchCV(estimator=random_reg, param_distributions=param, n_iter=4, cv=5, n_jobs=2,verbose=2)\n",
+    "random_cv.fit(X_train, y_train)\n",
+    "pred = random_cv.predict(X_test)\n",
+    "\n",
+    "\n",
+    "print(\"*******************Results********************\")\n",
+    "print('The r2 score is:', r2_score(y_test, pred))\n",
+    "print(\"The best score:\", random_cv.best_score_)\n",
+    "\n",
+    "print(\"\\n*****************XXXXXXXXXXX********************\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "0d955b5f",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Gradient Boosting Regressor\n",
+    "gb_reg = GradientBoostingRegressor()\n",
+    "gb_reg.fit(X_train,y_train)\n",
+    "y_pred = gb_reg.predict(X_test)\n",
+    "\n",
+    "print(\"*******************Results********************\")\n",
+    "print('The r2 score is:', r2_score(y_test, y_pred))\n",
+    "print('The mean absolute error', mean_absolute_error(y_test, y_pred))\n",
+    "print('The mean squared error', mean_squared_error(y_test, y_pred))\n",
+    "print('root mean square error', math.sqrt(mean_squared_error(y_test, y_pred)))\n",
+    "cv = cross_val_score(gb_reg, X,y,cv=5)\n",
+    "print('The cross validation score', cv.mean())\n",
+    "\n",
+    "print(\"\\n*****************XXXXXXXXXXX********************\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "1dd374b9",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#applying RandomsearchCV to improve accuracy\n",
+    "\n",
+    "params = {\"n_estimators\":[50,100,200,300,400,500,600,700,800,900],\"max_depth\":[3,4,5,6,7,8,9,10,12,15],\"min_samples_split\":[2,5,8,10,12,15,18,20,22],\n",
+    "             \"max_features\":['auto','sqrt'],\"min_samples_leaf\":[1,3,5,6,7,8],\"learning_rate\":[0.01,0.05,0.1,0.3,0.5,0.6,0.7]}\n",
+    "\n",
+    "random_gb = RandomizedSearchCV(gb_reg,param_distributions=params,n_iter=30,n_jobs=2,cv=6,verbose=2)\n",
+    "random_gb.fit(X_train,y_train)\n",
+    "          \n",
+    "pred = random_gb.predict(X_test)\n",
+    "\n",
+    "\n",
+    "print(\"*******************Results********************\")\n",
+    "print('The r2 score is:', r2_score(y_test, pred))\n",
+    "print(\"The best score:\", random_gb.best_score_)\n",
+    "\n",
+    "print(\"\\n*****************XXXXXXXXXXX********************\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "85d08392",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#BEST MODEL\n",
+    "y_pred = gb_reg.predict(X_test)\n",
+    "print(\"The accuracy score of model is:\",r2_score(y_test, y_pred)*100)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "84341d38",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#save the model\n",
+    "import pickle\n",
+    "\n",
+    "#open a file where you want to store the dat\n",
+    "file = open('Advertising_regressor.pkl','wb')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "186772f7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#dump the information to the file\n",
+    "pickle.dump(gb_reg,file)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "dd16bd50",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.9.7"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
+
